@@ -1,0 +1,142 @@
+---
+title: RoundUp - Diagrama entidad-relacion (12 tablas)
+config:
+  theme: default
+  themeVariables:
+    fontFamily: Arial
+---
+erDiagram
+    %% ---------- Seguridad ----------
+    USUARIO ||--o{ USUARIO_ROL : "tiene"
+    ROL ||--o{ USUARIO_ROL : "se_asigna_en"
+    USUARIO |o--o| CLIENTE : "accede_como"
+    USUARIO ||--o| ASESOR : "opera_como"
+
+    %% ---------- Negocio ----------
+    CLIENTE ||--o{ CUENTA : "posee"
+    ASESOR ||--o{ CUENTA : "abre"
+    PLAN_REDONDEO ||--o{ CUENTA : "configura"
+    CUENTA ||--o{ META_AHORRO : "tiene"
+    CUENTA ||--o{ COMPRA : "paga"
+    COMERCIO ||--o{ COMPRA : "cobra"
+    META_AHORRO |o--o{ COMPRA : "recibe_redondeo_de"
+    META_AHORRO ||--o| RETIRO_META : "se_retira_con"
+
+    %% ---------- Bitacora ----------
+    USUARIO ||--o{ BITACORA_OPERACION : "ejecuta"
+    CUENTA ||--o{ BITACORA_OPERACION : "traza"
+
+    USUARIO {
+        bigint id PK "autoincrementable"
+        varchar(50) username UK "NOT NULL"
+        varchar(100) password_hash "NOT NULL"
+        varchar(100) correo UK "NOT NULL"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    ROL {
+        bigint id PK "autoincrementable"
+        varchar(30) nombre UK "NOT NULL, catalogo: ADMIN, ASESOR, CLIENTE"
+        varchar(100) descripcion "NOT NULL"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    USUARIO_ROL {
+        bigint id PK "autoincrementable"
+        bigint usuario_id FK "NOT NULL, UNIQUE con rol_id"
+        bigint rol_id FK "NOT NULL, a rol(id)"
+        timestamp asignado_en "NOT NULL, DEFAULT now()"
+    }
+
+    CLIENTE {
+        bigint id PK "autoincrementable"
+        bigint usuario_id FK, UK "NULL hasta que active la app"
+        varchar(10) dui UK "NOT NULL, formato 00000000-0"
+        varchar(60) nombres "NOT NULL"
+        varchar(60) apellidos "NOT NULL"
+        varchar(100) correo UK "NOT NULL"
+        varchar(15) telefono "NOT NULL"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    ASESOR {
+        bigint id PK "autoincrementable"
+        bigint usuario_id FK, UK "NOT NULL, a usuario(id)"
+        varchar(10) codigo_empleado UK "NOT NULL"
+        varchar(60) nombres "NOT NULL"
+        varchar(60) apellidos "NOT NULL"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    PLAN_REDONDEO {
+        bigint id PK "autoincrementable"
+        varchar(20) codigo UK "NOT NULL, catalogo, ej. DOBLE"
+        varchar(60) nombre "NOT NULL"
+        integer multiplicador "NOT NULL, CHECK entre 1 y 3"
+        numeric tope_mensual "(12,2), NOT NULL, CHECK > 0"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    COMERCIO {
+        bigint id PK "autoincrementable"
+        varchar(20) codigo UK "NOT NULL, catalogo, ej. SUPER-SELECTOS"
+        varchar(80) nombre "NOT NULL"
+        boolean activo "NOT NULL, DEFAULT true"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    CUENTA {
+        bigint id PK "autoincrementable"
+        varchar(12) numero_cuenta UK "NOT NULL, ej. RU-000123"
+        bigint cliente_id FK "NOT NULL, a cliente(id)"
+        bigint asesor_id FK "NOT NULL, a asesor(id)"
+        bigint plan_redondeo_id FK "NOT NULL, a plan_redondeo(id)"
+        varchar(10) estado "NOT NULL: ACTIVA, BLOQUEADA, CERRADA"
+        numeric saldo_apertura "(12,2), NOT NULL, CHECK >= 0"
+        numeric saldo "(12,2), NOT NULL, CHECK >= 0, DERIVADO (R10)"
+        timestamp fecha_apertura "NOT NULL, DEFAULT now()"
+    }
+
+    META_AHORRO {
+        bigint id PK "autoincrementable"
+        bigint cuenta_id FK "NOT NULL, una sola ACTIVA por cuenta (R5)"
+        varchar(60) nombre "NOT NULL"
+        numeric monto_objetivo "(12,2), NOT NULL, CHECK > 0"
+        numeric monto_ahorrado "(12,2), NOT NULL, CHECK >= 0, DERIVADO (R11)"
+        varchar(12) estado "NOT NULL: ACTIVA, COMPLETADA, RETIRADA"
+        timestamp creado_en "NOT NULL, DEFAULT now()"
+    }
+
+    COMPRA {
+        bigint id PK "autoincrementable"
+        varchar(20) numero_comprobante UK "NOT NULL"
+        bigint cuenta_id FK "NOT NULL, a cuenta(id)"
+        bigint comercio_id FK "NOT NULL, a comercio(id)"
+        bigint meta_id FK "NULL si no habia meta ACTIVA"
+        numeric monto "(12,2), NOT NULL, CHECK > 0"
+        numeric redondeo "(12,2), NOT NULL, CHECK >= 0, copia del calculo del dia"
+        timestamp fecha_hora "NOT NULL, DEFAULT now()"
+    }
+
+    RETIRO_META {
+        bigint id PK "autoincrementable"
+        varchar(20) numero_comprobante UK "NOT NULL"
+        bigint meta_id FK, UK "NOT NULL, una meta se retira una sola vez"
+        numeric monto "(12,2), NOT NULL, CHECK > 0"
+        timestamp fecha_hora "NOT NULL, DEFAULT now()"
+    }
+
+    BITACORA_OPERACION {
+        bigint id PK "autoincrementable"
+        bigint usuario_id FK "NOT NULL, a usuario(id)"
+        bigint cuenta_id FK "NOT NULL, a cuenta(id)"
+        varchar(20) tipo_operacion "NOT NULL: COMPRA, RETIRO_META"
+        varchar(10) resultado "NOT NULL: EXITOSO, FALLIDO"
+        varchar(255) detalle "NOT NULL"
+        timestamp fecha_hora "NOT NULL, DEFAULT now()"
+    }

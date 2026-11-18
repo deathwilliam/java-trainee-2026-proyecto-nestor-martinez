@@ -1,0 +1,179 @@
+---
+title: RoundUp - Diagrama de clases (12 entidades)
+config:
+  theme: default
+  themeVariables:
+    fontFamily: Arial
+---
+classDiagram
+    direction TB
+
+    %% ---------- Seguridad ----------
+    class Usuario {
+        -Long id
+        -String username
+        -String passwordHash
+        -String correo
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    class Rol {
+        -Long id
+        -String nombre
+        -String descripcion
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    class UsuarioRol {
+        -Long id
+        -Usuario usuario
+        -Rol rol
+        -LocalDateTime asignadoEn
+    }
+
+    %% ---------- Personas ----------
+    class Cliente {
+        -Long id
+        -Usuario usuario
+        -String dui
+        -String nombres
+        -String apellidos
+        -String correo
+        -String telefono
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    class Asesor {
+        -Long id
+        -Usuario usuario
+        -String codigoEmpleado
+        -String nombres
+        -String apellidos
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    %% ---------- Catalogos ----------
+    class PlanRedondeo {
+        -Long id
+        -String codigo
+        -String nombre
+        -Integer multiplicador
+        -BigDecimal topeMensual
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    class Comercio {
+        -Long id
+        -String codigo
+        -String nombre
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+
+    %% ---------- Negocio ----------
+    class Cuenta {
+        -Long id
+        -String numeroCuenta
+        -Cliente cliente
+        -Asesor asesor
+        -PlanRedondeo planRedondeo
+        -EstadoCuenta estado
+        -BigDecimal saldoApertura
+        -BigDecimal saldo
+        -LocalDateTime fechaApertura
+    }
+
+    class MetaAhorro {
+        -Long id
+        -Cuenta cuenta
+        -String nombre
+        -BigDecimal montoObjetivo
+        -BigDecimal montoAhorrado
+        -EstadoMeta estado
+        -LocalDateTime creadoEn
+    }
+
+    class Compra {
+        -Long id
+        -String numeroComprobante
+        -Cuenta cuenta
+        -Comercio comercio
+        -MetaAhorro meta
+        -BigDecimal monto
+        -BigDecimal redondeo
+        -LocalDateTime fechaHora
+    }
+
+    class RetiroMeta {
+        -Long id
+        -String numeroComprobante
+        -MetaAhorro meta
+        -BigDecimal monto
+        -LocalDateTime fechaHora
+    }
+
+    %% ---------- Bitacora ----------
+    class BitacoraOperacion {
+        -Long id
+        -Usuario usuario
+        -Cuenta cuenta
+        -TipoOperacion tipoOperacion
+        -ResultadoOperacion resultado
+        -String detalle
+        -LocalDateTime fechaHora
+    }
+
+    %% ---------- Enums: los mismos valores que en el ER ----------
+    class EstadoCuenta {
+        <<enumeration>>
+        ACTIVA
+        BLOQUEADA
+        CERRADA
+    }
+
+    class EstadoMeta {
+        <<enumeration>>
+        ACTIVA
+        COMPLETADA
+        RETIRADA
+    }
+
+    class TipoOperacion {
+        <<enumeration>>
+        COMPRA
+        RETIRO_META
+    }
+
+    class ResultadoOperacion {
+        <<enumeration>>
+        EXITOSO
+        FALLIDO
+    }
+
+    %% ---------- Relaciones: mismos verbos que en el ER ----------
+    Usuario "1" <-- "0..*" UsuarioRol : tiene
+    Rol "1" <-- "0..*" UsuarioRol : se_asigna_en
+    Usuario "0..1" <-- "0..1" Cliente : accede_como
+    Usuario "1" <-- "0..1" Asesor : opera_como
+
+    Cliente "1" <-- "0..*" Cuenta : posee
+    Asesor "1" <-- "0..*" Cuenta : abre
+    PlanRedondeo "1" <-- "0..*" Cuenta : configura
+    Cuenta "1" <-- "0..*" MetaAhorro : tiene
+    Cuenta "1" <-- "0..*" Compra : paga
+    Comercio "1" <-- "0..*" Compra : cobra
+    MetaAhorro "0..1" <-- "0..*" Compra : recibe_redondeo_de
+    MetaAhorro "1" <-- "0..1" RetiroMeta : se_retira_con
+
+    Usuario "1" <-- "0..*" BitacoraOperacion : ejecuta
+    Cuenta "1" <-- "0..*" BitacoraOperacion : traza
+
+    Cuenta ..> EstadoCuenta : usa
+    MetaAhorro ..> EstadoMeta : usa
+    BitacoraOperacion ..> TipoOperacion : usa
+    BitacoraOperacion ..> ResultadoOperacion : usa

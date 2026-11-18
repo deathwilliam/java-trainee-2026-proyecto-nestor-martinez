@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB:  roundup
+      POSTGRES_USER: roundup
+      POSTGRES_PASSWORD: roundup123
+    ports:
+      - "5436:5432"
+    volumes:
+      - datos-roundup:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roundup -d roundup"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/roundup
+      DB_USUARIO: roundup
+      DB_CLAVE: roundup123
+      JWT_CLAVE: ${JWT_CLAVE:?Falta JWT_CLAVE. Cree el archivo .env con JWT_CLAVE=una-clave-de-32-bytes-o-mas}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  datos-roundup:
